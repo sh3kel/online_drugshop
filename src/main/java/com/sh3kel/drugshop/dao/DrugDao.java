@@ -7,7 +7,7 @@ import java.sql.*;
 import java.time.Instant;
 
 public class DrugDao{
-    public Drug getById(int id) {
+    public static Drug getById(int id) {
         String sql = """
                         SELECT *
                          FROM drugs WHERE id = ?;
@@ -17,15 +17,16 @@ public class DrugDao{
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setInt(1, id);
             ResultSet resultSet = preparedStatement.executeQuery();
+
             if(resultSet.next()) {
                 drug = new Drug(
                         resultSet.getInt("id"),
-                        resultSet.getString(2),
-                        resultSet.getString(3),
-                        resultSet.getBoolean(4),
-                        resultSet.getDate(5).toLocalDate(),
-                        resultSet.getDate(6).toLocalDate(),
-                        resultSet.getInt(7)
+                        resultSet.getString("title"),
+                        resultSet.getString("description"),
+                        resultSet.getBoolean("need_prescription"),
+                        resultSet.getDate("release_date").toLocalDate(),
+                        resultSet.getDate("expiration_date").toLocalDate(),
+                        resultSet.getInt("quantity")
                 );
             }
         } catch (SQLException e) {
@@ -34,7 +35,7 @@ public class DrugDao{
         return drug;
     }
 
-    public boolean create(Drug drug) {
+    public static boolean create(Drug drug) {
         String sql = """
                         INSERT INTO drugs (title, description, need_prescription, release_date, expiration_date, quantity)
                         VALUES ( ?, ?, ?, ?, ?, ?);
@@ -53,11 +54,43 @@ public class DrugDao{
         }
     }
 
-    public boolean update() {
-        return false;
+    public static int updateById(int id, Drug drug) {
+        String sql = """
+                    UPDATE drugs
+                    SET title = ?,
+                        description = ?,
+                        need_prescription = ?,
+                        release_date = ?,
+                        expiration_date = ?,
+                        quantity = ?
+                    WHERE id = ?
+                """;
+        try (Connection connection = ConnectionManager.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setString(1, drug.getTitle());
+            preparedStatement.setString(2, drug.getDescription());
+            preparedStatement.setBoolean(3, drug.isNeedPrescription());
+            preparedStatement.setDate(4, Date.valueOf(drug.getReleaseDate()));
+            preparedStatement.setDate(5, Date.valueOf(drug.getExpirationDate()));
+            preparedStatement.setInt(6, drug.getQuantity());
+            preparedStatement.setInt(7, id);
+            return preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public boolean delete() {
-        return false;
+    public static int deleteByID(int id) {
+        String sql = """
+                    DELETE FROM drugs
+                    WHERE id = ?;
+                """;
+        try (Connection connection = ConnectionManager.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, id);
+            return preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
